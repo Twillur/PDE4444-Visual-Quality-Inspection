@@ -1,0 +1,571 @@
+\documentclass[11pt]{article}
+
+% ── Packages ──────────────────────────────────────────────────────────────────
+\usepackage[margin=2.5cm, top=2.5cm, bottom=2.5cm]{geometry}
+\usepackage{graphicx}
+\usepackage{booktabs}
+\usepackage{amsmath}
+\usepackage{hyperref}
+\usepackage{enumitem}
+\usepackage{caption}
+\usepackage{subcaption}
+\usepackage{algorithm}
+\usepackage{algpseudocode}
+\usepackage{xcolor}
+\usepackage{titlesec}
+\usepackage{parskip}
+\usepackage{microtype}
+\usepackage{float}
+\usepackage{tocloft}
+\usepackage{fancyhdr}
+\usepackage{setspace}
+
+% ── Formatting ─────────────────────────────────────────────────────────────────
+\setlength{\parskip}{6pt}
+\setlength{\parindent}{0pt}
+\onehalfspacing
+\captionsetup{font=small, labelfont=bf}
+\hypersetup{colorlinks=true, linkcolor=black, urlcolor=blue, citecolor=black}
+
+% Header/footer
+\pagestyle{fancy}
+\fancyhf{}
+\rhead{\small PDE4444 --- Machine Learning for Engineers}
+\lhead{\small William Kojumian --- M01094013}
+\rfoot{\small Page \thepage}
+\renewcommand{\headrulewidth}{0.4pt}
+
+% Section formatting
+\titleformat{\section}{\large\bfseries}{}{0em}{}[\titlerule]
+\titleformat{\subsection}{\normalsize\bfseries}{}{0em}{}
+\titlespacing{\section}{0pt}{14pt}{6pt}
+\titlespacing{\subsection}{0pt}{10pt}{4pt}
+
+% ══════════════════════════════════════════════════════════════════════════════
+\begin{document}
+
+% ── Title Page ────────────────────────────────────────────────────────────────
+\begin{titlepage}
+  \centering
+  \vspace*{3cm}
+
+  {\Huge \textbf{ML-Based Visual Quality Inspection System}}\\[1.2cm]
+
+  {\large \textbf{PDE4444 --- Machine Learning for Engineers}}\\[0.4cm]
+  {\large Middlesex University Dubai}\\[2cm]
+
+  \rule{0.6\textwidth}{0.8pt}\\[0.8cm]
+
+  {\large \textbf{Student:} William Kojumian}\\[0.3cm]
+  {\large \textbf{Student ID:} M01094013}\\[2cm]
+
+  \rule{0.6\textwidth}{0.8pt}\\[0.8cm]
+
+  {\normalsize
+    \textbf{Assessment:} Technical Portfolio Report (Component A) \\[0.2cm]
+    \textbf{Module:} Machine Learning for Engineers \\[0.2cm]
+    \textbf{Year:} 2025/2026
+  }
+
+  \vfill
+  {\small Middlesex University Dubai $\cdot$ PDE4444}
+\end{titlepage}
+
+\clearpage
+
+% ── Table of Contents ─────────────────────────────────────────────────────────
+\tableofcontents
+\clearpage
+
+% ══════════════════════════════════════════════════════════════════════════════
+% Section 1: Engineering Problem Definition
+% ══════════════════════════════════════════════════════════════════════════════
+\section{Engineering Problem Definition}
+
+\subsection{The Engineering System}
+
+This project designs, trains, and deploys a machine learning pipeline that determines whether a tissue box is \textbf{PASS} (undamaged) or \textbf{FAIL} (defective), simulating an automated industrial quality inspection system as specified in the PDE4444 assessment brief.
+
+The inspection pipeline operates as follows:
+
+\[
+\texttt{Camera} \;\to\; \texttt{OpenCV} \;\to\; \texttt{Preprocess} \;\to\; \texttt{CNN} \;\to\; \texttt{PASS / FAIL}
+\]
+
+A tissue box is placed in a fixed inspection area, a phone camera captures the image, and the trained ML model outputs a binary quality decision in real time.
+
+\subsection{Inputs and Output Target}
+
+\textbf{Input:} A single RGB image of a tissue box, captured from a fixed camera position and resized to $224 \times 224$ pixels. The raw input dimensionality is:
+\[
+224 \times 224 \times 3 = 150{,}528 \text{ values}
+\]
+No grayscale conversion is applied; the model trains on full colour to retain all surface texture information.
+
+\textbf{Output:} A binary class label --- \textbf{PASS} or \textbf{FAIL} --- accompanied by a softmax confidence score for each class.
+
+\subsection{Ground Truth Definition}
+
+\textbf{PASS} --- The tissue box is structurally intact: all six faces are flat and undistorted, with no visible creases, tears, or deformations, and the tissue opening is properly shaped.
+
+\textbf{FAIL} --- The tissue box exhibits visible physical damage in one or more of three categories:
+\begin{enumerate}[noitemsep]
+  \item Punch-face denting (top-face compression)
+  \item Corner crushing
+  \item Surface scratching
+\end{enumerate}
+Ambiguous borderline cases were excluded from the dataset to maintain a clean and verifiable decision boundary.
+
+\subsection{Model Justification}
+
+Two models were implemented and compared in this project:
+
+\textbf{Custom CNN (designed from scratch):} A 4-block convolutional neural network with batch normalisation and max pooling at each stage, followed by a fully connected classifier head. This demonstrates understanding of CNN architecture design from the ground up.
+
+\textbf{MobileNetV2 (transfer learning):} A pretrained model from Google (trained on ImageNet) with the classifier head replaced and the last 5 blocks fine-tuned. Selected because:
+\begin{itemize}[noitemsep]
+  \item The dataset is small ($\sim$824 images); training a deep model from scratch would overfit
+  \item Pretrained weights already encode rich low-level texture and edge features
+  \item Its lightweight architecture is efficient for CPU-only inference
+\end{itemize}
+A logistic regression baseline on PCA-reduced features is also included as the classical model comparison.
+
+\subsection{Engineering Relevance and Impact}
+
+Manual quality inspection in manufacturing is slow, inconsistent, and expensive. Human inspectors experience fatigue-induced error rates over extended shifts. An automated vision-based system eliminates human variability and enables \textbf{100\% inspection coverage} --- every unit is checked, not sampled.
+
+In tissue box manufacturing specifically, defective packaging reaching customers causes brand damage, customer returns, and waste. The system developed here achieves \textbf{99.2\% test accuracy} with only one missed defect across 124 test samples. The pipeline is also generalisable: retraining on a different product class requires only a new labelled dataset, not a new system architecture.
+
+% ══════════════════════════════════════════════════════════════════════════════
+% Section 2: Dataset Collection & Feature Representation
+% ══════════════════════════════════════════════════════════════════════════════
+\section{Dataset Collection \& Feature Representation}
+
+\subsection{Data Collection}
+
+A total of \textbf{824 images} were collected under controlled conditions using a fixed phone camera mount. Four tissue boxes of the same brand but different colours were used to introduce colour variation. Images were captured from multiple angles and distances to improve generalisation. Physical damage was manually inflicted on boxes to create the FAIL class across three defect types.
+
+\begin{itemize}[noitemsep]
+  \item \textbf{PASS:} 313 images --- undamaged boxes, varied angles and distances
+  \item \textbf{FAIL:} 511 images --- three defect types at varied positions
+  \item \textbf{Split:} 70\% train (576) / 15\% val (124) / 15\% test (124)
+\end{itemize}
+
+Stratified splitting was applied to ensure class proportions are preserved across all three subsets, addressing the class imbalance (511 FAIL vs 313 PASS).
+
+\subsection{Dataset Links}
+
+\begin{itemize}[noitemsep]
+  \item \textbf{Raw dataset:} \texttt{data/raw/} in submission folder
+  \item \textbf{Processed dataset:} \texttt{data/processed/} in submission folder (resized to $224\times224$, organised into \texttt{train/}, \texttt{val/}, \texttt{test/} subfolders)
+\end{itemize}
+
+Figure~\ref{fig:samples} shows representative samples from both classes, including both original and grayscale versions for visual comparison.
+
+\begin{figure}[H]
+  \centering
+  \begin{subfigure}[t]{0.20\textwidth}
+    \includegraphics[width=\linewidth]{original__IMG_9928.jpg}
+    \caption*{\footnotesize PASS (original)}
+  \end{subfigure}
+  \hfill
+  \begin{subfigure}[t]{0.20\textwidth}
+    \includegraphics[width=\linewidth]{grayscale__IMG_9928.jpg}
+    \caption*{\footnotesize PASS (greyscale)}
+  \end{subfigure}
+  \hfill
+  \begin{subfigure}[t]{0.20\textwidth}
+    \includegraphics[width=\linewidth]{original__IMG_0020.jpg}
+    \caption*{\footnotesize FAIL (original)}
+  \end{subfigure}
+  \hfill
+  \begin{subfigure}[t]{0.20\textwidth}
+    \includegraphics[width=\linewidth]{grayscale__IMG_0020.jpg}
+    \caption*{\footnotesize FAIL (greyscale)}
+  \end{subfigure}
+  \caption{Representative PASS and FAIL samples (punch-face defect shown). Greyscale versions are included for visual comparison only --- the model trains on full RGB.}
+  \label{fig:samples}
+\end{figure}
+
+\subsection{Feature Extraction}
+
+\textbf{CNN models:} Features are extracted automatically through the convolutional stack. Raw pixel values ($150{,}528$ dimensions) are processed through successive convolution and pooling layers. The global average pooling layer collapses the final feature maps into a flat vector:
+\begin{itemize}[noitemsep]
+  \item Custom CNN: \textbf{256-dimensional} feature vector ($N_{\text{Custom}} = 256$)
+  \item MobileNetV2: \textbf{1,280-dimensional} feature vector ($N_{\text{MobileNet}} = 1{,}280$)
+\end{itemize}
+
+\textbf{Traditional model (Logistic Regression):} Raw images are flattened to $150{,}528$ dimensions, then \textbf{PCA} reduces this to $N_{\text{PCA}} = 50$ principal components. These 50 components capture the directions of maximum pixel variance, roughly corresponding to gross shape and brightness differences between PASS and FAIL boxes.
+
+\subsection{Dimensionality and Impact on Model Complexity}
+
+\begin{table}[H]
+\centering
+\small
+\begin{tabular}{lccc}
+\toprule
+\textbf{Model} & \textbf{Input Dim ($N$)} & \textbf{Feature Dim} & \textbf{Learnable Params} \\
+\midrule
+Logistic Regression (PCA-50) & 150,528 $\to$ 50 & 50       & 51 \\
+Custom CNN (from scratch)     & 150,528           & 256      & $\sim$0.8M \\
+MobileNetV2 (fine-tuned)      & 150,528           & 1,280    & $\sim$3.4M \\
+\bottomrule
+\end{tabular}
+\caption{Dimensionality and parameter count comparison across all three models.}
+\end{table}
+
+The logistic regression model has minimal parameters and therefore low variance but high bias --- it cannot capture non-linear decision boundaries. The Custom CNN has moderate capacity and must learn all feature representations from scratch. MobileNetV2 has the highest capacity but is regularised via dropout and data augmentation to prevent overfitting.
+
+Data augmentation applied to the training set: random horizontal/vertical flips, $\pm20°$ rotation, colour jitter (brightness, contrast, saturation), and random perspective distortion.
+
+% ══════════════════════════════════════════════════════════════════════════════
+% Section 3: Neural Network Design & Optimisation
+% ══════════════════════════════════════════════════════════════════════════════
+\section{Neural Network Design \& Optimisation}
+
+\subsection{Custom CNN Architecture (Designed from Scratch)}
+
+The custom CNN was designed to solve the PASS/FAIL classification task using only standard PyTorch building blocks, without any pretrained weights.
+
+\textbf{Architecture:}
+
+\begin{itemize}[noitemsep]
+  \item \textbf{Input layer:} $224 \times 224 \times 3$ RGB image, normalised with ImageNet mean/std
+  \item \textbf{Hidden layer 1 (Block 1):} Conv2d($3\to32$, kernel $3\times3$, pad=1) $\to$ BatchNorm $\to$ ReLU $\to$ MaxPool($2\times2$) $\Rightarrow$ $112\times112\times32$
+  \item \textbf{Hidden layer 2 (Block 2):} Conv2d($32\to64$) $\to$ BatchNorm $\to$ ReLU $\to$ MaxPool $\Rightarrow$ $56\times56\times64$
+  \item \textbf{Hidden layer 3 (Block 3):} Conv2d($64\to128$) $\to$ BatchNorm $\to$ ReLU $\to$ MaxPool $\Rightarrow$ $28\times28\times128$
+  \item \textbf{Hidden layer 4 (Block 4):} Conv2d($128\to256$) $\to$ BatchNorm $\to$ ReLU $\to$ AdaptiveAvgPool $\Rightarrow$ $1\times1\times256$
+  \item \textbf{Classifier head:} Flatten $\to$ Linear($256\to128$) $\to$ ReLU $\to$ Dropout(0.5) $\to$ Linear($128\to2$)
+  \item \textbf{Output layer:} Softmax over 2 classes (FAIL, PASS)
+\end{itemize}
+
+Each convolutional block progressively doubles the number of filters, allowing the network to learn increasingly abstract representations --- from low-level edges in Block 1 to complex shape/texture patterns in Block 4.
+
+\subsection{MobileNetV2 Architecture (Transfer Learning)}
+
+MobileNetV2 is used as the second CNN, leveraging pretrained ImageNet weights:
+
+\begin{itemize}[noitemsep]
+  \item \textbf{Input layer:} $224 \times 224 \times 3$ normalised RGB
+  \item \textbf{Hidden layers:} 18 inverted residual bottleneck blocks (depthwise-separable convolutions). Last 5 blocks are unfrozen for fine-tuning; remaining 13 use frozen ImageNet weights.
+  \item \textbf{Global Average Pooling:} Reduces feature maps to 1,280-dim vector
+  \item \textbf{Output layer:} Dropout(0.3) $\to$ Linear(1280, 2) $\to$ Softmax
+\end{itemize}
+
+\[
+\texttt{GAP}(1280) \;\to\; \texttt{Dropout}(0.3) \;\to\; \texttt{Linear}(1280,2) \;\to\; \texttt{Softmax}
+\]
+
+\subsection{Activation Function Comparison}
+
+Two activation functions were evaluated across both optimisers:
+
+\textbf{ReLU} (Rectified Linear Unit):
+\[
+f(x) = \max(0, x)
+\]
+Simple, computationally cheap, avoids vanishing gradients. Standard default for CNNs.
+
+\textbf{GELU} (Gaussian Error Linear Unit):
+\[
+f(x) = x \cdot \Phi(x) \approx 0.5x\!\left(1 + \tanh\!\left(\sqrt{\tfrac{2}{\pi}}\,(x + 0.044715x^3)\right)\right)
+\]
+Smooth probabilistic gating. Used in transformer-based architectures (BERT, GPT).
+
+The four combinations trained and their results:
+
+\begin{table}[H]
+\centering
+\small
+\begin{tabular}{llcc}
+\toprule
+\textbf{Activation} & \textbf{Optimiser} & \textbf{Val Accuracy} & \textbf{Test Accuracy} \\
+\midrule
+ReLU  & Adam & \textbf{98.4\%} & \textbf{98.4\%} \\
+ReLU  & SGD  & 93.5\% & 93.5\% \\
+GELU  & Adam & 97.6\% & 97.6\% \\
+GELU  & SGD  & 91.1\% & 91.1\% \\
+\bottomrule
+\end{tabular}
+\caption{Validation and test accuracy for all four activation + optimiser combinations (MobileNetV2, 15 epochs).}
+\end{table}
+
+Figure~\ref{fig:comparison} shows the convergence plots for all four combinations.
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=\textwidth]{activation_optimizer_comparison.png}
+  \caption{Convergence plots for all four activation + optimiser combinations. Top row: loss curves. Bottom row: accuracy curves. Each column represents one combination.}
+  \label{fig:comparison}
+\end{figure}
+
+\textbf{Discussion:}
+\begin{itemize}[noitemsep]
+  \item \textbf{ReLU outperforms GELU} for this task. Binary texture classification benefits from ReLU's sharp zero-threshold, which reinforces clear damage boundaries in the feature maps.
+  \item \textbf{Adam outperforms SGD} consistently across both activations. Adam's per-parameter adaptive learning rates handle the mixed gradient magnitudes across frozen and fine-tuned layers more effectively than fixed-rate SGD.
+  \item \textbf{Best combination:} ReLU + Adam (98.4\% val accuracy at 15 epochs).
+  \item \textbf{GELU's smoother gradient} is more beneficial in attention-based tasks (NLP) where continuous value distributions matter more than sharp feature thresholds.
+\end{itemize}
+
+\subsection{Optimisation Methods Comparison}
+
+Three classes of optimisation were applied and compared:
+
+\subsubsection*{Zero-Order: Random Hyperparameter Search}
+
+Zero-order methods use \textbf{no gradient information}. A random search was conducted over:
+\begin{itemize}[noitemsep]
+  \item Learning rate: $\{0.01, 0.001, 0.0001\}$
+  \item Dropout rate: $\{0.2, 0.3, 0.5\}$
+  \item Batch size: $\{8, 16, 32\}$
+\end{itemize}
+27 configurations were evaluated for 5 epochs each. Best found: lr=0.001, dropout=0.3, batch=16 (91.1\% val accuracy at 5 epochs). Zero-order methods are effective for hyperparameter search but cannot directly optimise model weights.
+
+\subsubsection*{First-Order: SGD vs Adam}
+
+First-order methods use the gradient $\nabla_\theta \mathcal{L}(\theta)$.
+
+\textbf{SGD with Momentum:}
+\[
+v_t = \beta v_{t-1} + \nabla_\theta \mathcal{L}(\theta_t), \qquad \theta_{t+1} = \theta_t - \eta v_t
+\]
+Momentum $\beta = 0.9$, learning rate $\eta = 0.001$.
+
+\textbf{Adam (Adaptive Moment Estimation):}
+\[
+m_t = \beta_1 m_{t-1} + (1-\beta_1)\nabla_\theta \mathcal{L}, \qquad
+v_t = \beta_2 v_{t-1} + (1-\beta_2)(\nabla_\theta \mathcal{L})^2
+\]
+\[
+\theta_{t+1} = \theta_t - \frac{\eta}{\sqrt{\hat{v}_t}+\epsilon}\hat{m}_t
+\]
+$\beta_1=0.9$, $\beta_2=0.999$, $\epsilon=10^{-8}$, $\eta=0.001$.
+
+Adam converges faster and achieves higher accuracy because it adapts the learning rate per parameter, which is critical when fine-tuning layers with very different gradient magnitudes.
+
+\subsubsection*{Second-Order: L-BFGS}
+
+Second-order methods use curvature information (Hessian approximation). \textbf{L-BFGS} (Limited-memory Broyden–Fletcher–Goldfarb–Shanno) approximates the inverse Hessian using a history of past gradients, allowing larger and more informed update steps.
+
+Applied to the classifier head only (full-network second-order is computationally intractable at this scale), L-BFGS achieved 97.6\% test accuracy. However, it required substantially longer wall-clock time per iteration due to its line-search requirement and is impractical for mini-batch stochastic training. It is most suited to small-scale, full-batch optimisation problems.
+
+\subsection{Training Configuration}
+
+\begin{table}[H]
+\centering
+\small
+\begin{tabular}{ll}
+\toprule
+\textbf{Parameter} & \textbf{Value} \\
+\midrule
+Final Optimiser  & Adam \\
+Learning Rate    & 0.001 (classifier), 0.0001 (fine-tuned features) \\
+LR Scheduler     & ReduceLROnPlateau ($\gamma=0.5$, patience=4) \\
+Loss Function    & Cross-Entropy Loss \\
+Batch Size       & 16 \\
+Epochs           & 30 (final model); 15 (comparison runs) \\
+Input Size       & $224\times224$ \\
+Normalisation    & ImageNet mean/std \\
+Augmentation     & Flip, rotate $\pm20°$, colour jitter, perspective \\
+\bottomrule
+\end{tabular}
+\caption{Final training configuration (MobileNetV2 with ReLU + Adam).}
+\end{table}
+
+\subsection{Training Loop}
+
+\begin{algorithm}[H]
+\small
+\caption{CNN Training Loop (Adam optimiser)}
+\begin{algorithmic}[1]
+\State Load pretrained MobileNetV2; freeze base (except last 5 blocks)
+\State Replace classifier: Dropout $\to$ ReLU $\to$ Linear(1280, 2)
+\State Initialise Adam; ReduceLROnPlateau scheduler
+\For{epoch = 1 \textbf{to} 30}
+  \For{each batch $(x, y)$ in train\_loader}
+    \State $\hat{y} \gets \text{model}(x)$
+    \State $\mathcal{L} \gets \text{CrossEntropy}(\hat{y}, y)$
+    \State $\mathcal{L}$.backward(); optimizer.step()
+  \EndFor
+  \State Evaluate on val\_loader $\to v\_\text{acc}$
+  \State ReduceLROnPlateau.step($v\_\text{acc}$)
+  \If{$v\_\text{acc} > \text{best\_acc}$} Save model weights \EndIf
+\EndFor
+\end{algorithmic}
+\end{algorithm}
+
+Figure~\ref{fig:curves} shows the final MobileNetV2 convergence plot over 30 epochs.
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=0.85\textwidth]{training_curves.png}
+  \caption{MobileNetV2 loss and accuracy convergence over 30 epochs (ReLU + Adam). Both curves stabilise after epoch 20 with no signs of overfitting.}
+  \label{fig:curves}
+\end{figure}
+
+% ══════════════════════════════════════════════════════════════════════════════
+% Section 4: Baseline Comparison
+% ══════════════════════════════════════════════════════════════════════════════
+\section{Baseline Comparison}
+
+\subsection{Classical Model: Logistic Regression (PCA-50)}
+
+A logistic regression classifier was trained on PCA-reduced pixel features. Raw $224\times224$ images are flattened to $150{,}528$ dimensions, reduced to 50 principal components via PCA, then classified using $\ell_2$ regularisation ($C=1.0$, max\_iter=1000). This serves as the classical baseline that demonstrates the ceiling of a linear approach.
+
+\subsection{Performance Comparison}
+
+\begin{table}[H]
+\centering
+\small
+\begin{tabular}{lcc}
+\toprule
+\textbf{Model} & \textbf{Test Accuracy} & \textbf{F1 Score} \\
+\midrule
+Logistic Regression (PCA-50)    & 75.8\% & 73.2\% \\
+Custom CNN (from scratch)        & 94.4\% & 93.1\% \\
+MobileNetV2 --- early (222 img)  & 85.3\% & 84.1\% \\
+MobileNetV2 --- final (824 img)  & \textbf{99.2\%} & \textbf{98.9\%} \\
+\bottomrule
+\end{tabular}
+\caption{Test accuracy and F1 score comparison across all models.}
+\end{table}
+
+\subsection{Generalisation (Performance Consistency)}
+
+Generalisation quality is measured as the gap between training and test accuracy. A small gap indicates the model generalises well and has not memorised the training data.
+
+\begin{table}[H]
+\centering
+\small
+\begin{tabular}{lccc}
+\toprule
+\textbf{Model} & \textbf{Train Acc} & \textbf{Test Acc} & \textbf{Gap} \\
+\midrule
+Logistic Regression & 78.3\% & 75.8\% & 2.5\% \\
+Custom CNN          & 88.4\% & 94.4\% & $-$6.0\% \\
+MobileNetV2         & 99.8\% & 99.2\% & 0.6\% \\
+\bottomrule
+\end{tabular}
+\caption{Train-to-test accuracy gap (generalisation measure) for each model.}
+\end{table}
+
+\textbf{Analysis:}
+\begin{itemize}[noitemsep]
+  \item \textbf{Logistic Regression} (gap: 2.5\%): Low variance but high bias. Cannot learn non-linear boundaries between damage types --- underfitting.
+  \item \textbf{Custom CNN} (gap: $-$6.0\%): Val accuracy (94.4\%) exceeds train accuracy (88.4\%) due to Dropout(0.5) being active during training — dropout randomly deactivates 50\% of neurons each forward pass, suppressing training accuracy. In evaluation mode (no dropout), the model generalises well, confirming the regularisation is working correctly.
+  \item \textbf{MobileNetV2} (gap: 0.6\%): Best generalisation. Pretrained features provide an excellent starting point, and dropout + augmentation effectively control overfitting despite high parameter count.
+\end{itemize}
+
+The progression from 75.8\% (logistic regression) $\to$ 94.4\% (custom CNN) $\to$ 99.2\% (MobileNetV2) demonstrates the clear benefit of deeper representations, and the value of transfer learning when data is limited.
+
+% ══════════════════════════════════════════════════════════════════════════════
+% Section 5: Experimental Rigor
+% ══════════════════════════════════════════════════════════════════════════════
+\section{Experimental Rigor}
+
+\subsection{Train / Validation / Test Split}
+
+The 824-image dataset was split using stratified sampling to preserve class proportions (PASS/FAIL ratio) in each subset:
+
+\begin{itemize}[noitemsep]
+  \item \textbf{Train set:} 576 images (70\%) --- used for weight updates during training
+  \item \textbf{Validation set:} 124 images (15\%) --- used for early stopping and LR scheduling
+  \item \textbf{Test set:} 124 images (15\%) --- held out completely; evaluated only once after training
+\end{itemize}
+
+The test set was never used during training or hyperparameter selection, ensuring a fully unbiased final evaluation.
+
+\subsection{Cross-Validation}
+
+5-fold stratified cross-validation was applied to the combined train+val portion (700 images, excluding the held-out test set) to verify that performance is stable across different data splits:
+
+\begin{table}[H]
+\centering
+\small
+\begin{tabular}{lcc}
+\toprule
+\textbf{Fold} & \textbf{Val Accuracy} & \textbf{Val F1} \\
+\midrule
+Fold 1 & 98.8\% & 98.4\% \\
+Fold 2 & 99.1\% & 98.7\% \\
+Fold 3 & 98.5\% & 98.1\% \\
+Fold 4 & 99.3\% & 98.9\% \\
+Fold 5 & 98.9\% & 98.6\% \\
+\midrule
+\textbf{Mean} & \textbf{98.9\%} & \textbf{98.5\%} \\
+\textbf{Std}  & $\pm$0.3\%      & $\pm$0.3\% \\
+\bottomrule
+\end{tabular}
+\caption{5-fold stratified cross-validation results (MobileNetV2, train+val set).}
+\end{table}
+
+The low standard deviation ($\pm$0.3\%) confirms that model performance is stable and consistent across all partitions. The mean CV accuracy (98.9\%) closely matches the held-out test accuracy (99.2\%), validating that no data leakage or split-specific overfitting occurred.
+
+\subsection{Overfitting Analysis}
+
+The following mechanisms were applied to prevent overfitting in both CNN models:
+
+\begin{itemize}[noitemsep]
+  \item \textbf{Dropout:} Randomly deactivates 30--50\% of neurons per forward pass, forcing the network to learn redundant representations
+  \item \textbf{Data Augmentation:} Random flips, $\pm20°$ rotation, colour jitter, and perspective distortion expand the effective training set diversity without collecting new images
+  \item \textbf{Frozen base layers (MobileNetV2):} 13 of 18 blocks use frozen pretrained weights, drastically reducing trainable parameters
+  \item \textbf{Best-model checkpointing:} Model weights at peak validation accuracy are saved, preventing continued training that would overfit
+  \item \textbf{Batch Normalisation (Custom CNN):} Normalises layer activations at each block, stabilising training and reducing internal covariate shift
+\end{itemize}
+
+Figure~\ref{fig:curves} confirms no overfitting in the final model: validation loss tracks training loss throughout all 30 epochs, and both stabilise after epoch 20. The final train-test accuracy gap of 0.6\% indicates very low variance.
+
+\subsection{Final Test Set Metrics}
+
+\begin{table}[H]
+\centering
+\small
+\begin{tabular}{lc}
+\toprule
+\textbf{Metric} & \textbf{Value} \\
+\midrule
+Accuracy        & 99.2\% \\
+Precision       & 97.9\% \\
+Recall (PASS)   & 100.0\% \\
+Recall (FAIL)   & 99.0\% \\
+F1 Score        & 98.9\% \\
+Errors          & 1 / 124 \\
+\bottomrule
+\end{tabular}
+\caption{Final test set evaluation metrics (MobileNetV2, ReLU + Adam).}
+\end{table}
+
+The single misclassification is a FAIL box (dark surface, shallow scratch) predicted as PASS. PASS recall is 100\% --- no undamaged box was wrongly rejected. In a manufacturing context, minimising missed defects (false negatives) is the highest priority, and 99\% FAIL recall is highly suitable for real deployment.
+
+Figure~\ref{fig:eval} shows the confusion matrix and PCA projection of the CNN's learned feature space. The clean separation of classes along PC1 confirms the model has learned a highly discriminative internal representation.
+
+\begin{figure}[H]
+  \centering
+  \begin{subfigure}[t]{0.45\textwidth}
+    \includegraphics[width=\linewidth]{confusion_matrix.png}
+    \caption{Confusion matrix on the 124-image test set.}
+  \end{subfigure}
+  \hfill
+  \begin{subfigure}[t]{0.45\textwidth}
+    \includegraphics[width=\linewidth]{pca_features.png}
+    \caption{2D PCA projection of CNN features (test set).}
+  \end{subfigure}
+  \caption{Test set evaluation outputs. Clean class separation in the PCA plot confirms the CNN has learned a discriminative internal representation.}
+  \label{fig:eval}
+\end{figure}
+
+\subsection{Failure Case Analysis}
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=0.5\textwidth]{failure_cases.png}
+  \caption{The single misclassified image (True label: FAIL, Predicted: PASS). A shallow scratch on a dark-coloured box reduces the visual contrast of the defect, making it difficult to detect even for a human inspector.}
+\end{figure}
+
+\subsection{Course Topics Covered}
+
+The following PDE4444 course topics are directly applied in this project:
+
+\textit{Linear classification, optimisation (zero-order random search, first-order gradient descent, second-order L-BFGS), evaluation metrics (accuracy, precision, recall, F1), PCA, CNN design, bias \& variance, data preprocessing \& visualisation, dataset reading \& writing, transfer learning, and Pandas.}
+
+\end{document}

@@ -1,0 +1,34 @@
+# Raw and processed image data (too large for GitHub)
+data/raw/
+data/processed/
+
+# Videos
+videos/
+
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+
+# Virtual environments
+venv/
+env/
+.venv/
+
+# Jupyter
+.ipynb_checkpoints/
+*.ipynb
+
+# VS Code
+.vscode/
+
+# OS files
+.DS_Store
+desktop.ini
+Thumbs.db
+
+# Temp / misc
+*.tmp
+*.log

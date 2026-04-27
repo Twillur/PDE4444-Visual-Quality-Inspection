@@ -25,9 +25,8 @@ A complete end-to-end machine learning pipeline that classifies tissue boxes as 
 tissue_inspection/
 ├── data/
 │   ├── metadata.csv          ← image paths, labels, and train/val/test splits
-│   ├── samples/              ← representative pass & fail example images
-│   ├── raw/                  ← full raw dataset (excluded — 2.5 GB)
-│   └── processed/            ← resized/split images (auto-generated, excluded)
+│   ├── raw/                  ← original iPhone photos (excluded — 2.4 GB)
+│   └── processed/            ← resized 224×224 images, train/val/test splits
 ├── models/
 │   ├── best_model.pth        ← trained MobileNetV2 weights
 │   ├── custom_cnn.pth        ← trained custom CNN weights
@@ -65,7 +64,7 @@ Images collected manually with an iPhone under varied real-world conditions.
 **FAIL examples:** crushed corners, torn packaging, water damage, missing labels, dented boxes.  
 **Capture conditions:** varied lighting (bright, dim, mixed), multiple angles (front, top, sides, diagonal), plain and cluttered backgrounds.
 
-> The full raw dataset (~2.5 GB) is excluded from this repository. The `data/samples/` folder contains representative examples from each class.  
+> Original iPhone photos (~2.4 GB) are excluded. The `data/processed/` folder contains all 824 images resized to 224×224 across train/val/test splits.  
 > `data/metadata.csv` documents every image's path, label, and split assignment.
 
 ---

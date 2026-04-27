@@ -1,6 +1,5 @@
-# Raw and processed image data (too large for GitHub)
+# Raw images (original iPhone photos, ~2.4 GB)
 data/raw/
-data/processed/
 
 # Videos
 videos/
